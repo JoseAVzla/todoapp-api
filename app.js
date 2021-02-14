@@ -1,8 +1,9 @@
 const express = require("express");
+var cors = require('cors');
 const mysql = require("mysql");
 const bodyParser = require("body-parser");
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3010;
 const app = express();
 
 const connection = mysql.createConnection({
@@ -12,13 +13,14 @@ const connection = mysql.createConnection({
   database: "todoapp"
 });
 
+
+
 app.use(bodyParser.json());
+
+app.use(cors())
 app.use(function(req, res, next) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
-  );
+  res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
   res.setHeader(
     "Access-Control-Allow-Headers",
     "X-Requested-With,content-type"
@@ -33,7 +35,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/tasks", (req, res) => {
-  const sql = "SELECT * FROM task";
+  const sql = "SELECT * FROM todoapp.task ORDER BY created_at DESC";
   connection.query(sql, (error, results) => {
     if (error) throw error;
     res.json(results);
@@ -42,19 +44,19 @@ app.get("/tasks", (req, res) => {
 
 app.get("/tasks/:id", (req, res) => {
   const { id } = req.params;
-  const sql = `SELECT * FROM task WHERE id =${id} `;
+  const sql = `SELECT * FROM todoapp.task WHERE id =${id} `;
   connection.query(sql, (error, results) => {
     if (error) throw error;
     res.json(results);
   });
 });
 
-app.post("/add", (req, res) => {
-  const sql = "INSERT INTO tasks SET ?";
+app.post("/tasks/add", (req, res) => {
+  const sql = "INSERT INTO todoapp.task SET ?";
   const taskObj = {
     title: req.body.title,
     description: req.body.description,
-    end_date: req.body.end_date
+    status: "todo"
   };
   connection.query(sql, taskObj, (error, results) => {
     if (error) throw error;
@@ -62,19 +64,18 @@ app.post("/add", (req, res) => {
   });
 });
 
-app.fetch("update/:id", () => {
-  const { id } = req.params;
-  const sql = `UPDATE tasks SET title = ${title}, description = ${description},  end_date = ${endDate} tasks WHERE id = ${id}`;
-
-  connection.query(sql, (error, result) => {
-      if (error) throw error;
-      res.send(`Task with id: ${id} updated.`)
-  })
+app.patch("/tasks/update", (req, res) => {
+  const { id, title, description, status } = req.body;
+  const sql = `UPDATE todoapp.task SET title = '${title}', description = '${description}',  status = '${status}' WHERE id = ${id}`;
+  connection.query(sql, err => {
+    if (err) throw err;
+    res.send('Prospect updated!');
+  });
 });
 
-app.delete("delete/:id", (req, res) => {
+app.delete("/tasks/delete/:id", (req, res) => {
   const { id } = req.params;
-  const sql = `DELETE FROM tasks WHERE id = ${id}`;
+  const sql = `DELETE FROM todoapp.task WHERE id = ${id}`;
   connection.query(sql, error => {
     if (error) throw error;
     res.send(`Task with id ${id}deleted`);
